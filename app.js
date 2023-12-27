@@ -1,6 +1,46 @@
 const cron = require('node-cron');
 const axios = require('axios');
+const express = require("express");
 
+const app = express();
+
+// app.use(cors());
+
+const port = 4000;
+
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({limit: '50mb', extended: true}));
+
+app.use(express.json());
+app.use(logger)
+ 
+app.get('/', (req, res) => {
+
+  // res.send('Welcome to Gofer')
+})
+
+const http = require('http');
+const httpServer = http.createServer(app);
+
+httpServer.listen(port, async () => {
+  try {
+    // Schedule the function to run at 10am, 3pm, and 8pm
+    cron.schedule('0 10,15,20 * * *', () => {
+        
+      sendPushNotification();
+    }, {
+      timezone: 'America/New_York' // Replace 'Your_Time_Zone' with your desired timezone (e.g., 'America/New_York')
+    });
+    
+    sendPushNotification()
+
+    console.log('Scheduled tasks are set.');
+
+  } catch (error) {
+    console.log(error);
+  }
+  console.log(`App is Running on PORT ${port}`);
+});
 
 async function getDeviceIdList() {
     const fbAdmin = require('firebase-admin');
@@ -71,16 +111,7 @@ async function sendPushNotification() {
   }
 }
 
-
-sendPushNotification()
-
-// Schedule the function to run at 10am, 3pm, and 8pm
-cron.schedule('0 10,15,20 * * *', () => {
-    
-  sendPushNotification();
-}, {
-  timezone: 'America/New_York' // Replace 'Your_Time_Zone' with your desired timezone (e.g., 'America/New_York')
-});
-
-
-console.log('Scheduled tasks are set.');
+function logger(req, res, next) {
+  console.log(req.originalUrl) 
+  next()
+}

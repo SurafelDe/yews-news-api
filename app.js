@@ -4,8 +4,6 @@ const express = require("express");
 
 const app = express();
 
-// app.use(cors());
-
 const port = 4000;
 
 app.use(express.json({limit: '50mb'}));
@@ -16,7 +14,7 @@ app.use(logger)
  
 app.get('/', (req, res) => {
 
-  // res.send('Welcome to Gofer')
+  // res.send('Welcome to Yews API')
 })
 
 const http = require('http');
@@ -27,12 +25,12 @@ httpServer.listen(port, async () => {
     // Schedule the function to run at 10am, 3pm, and 8pm
     cron.schedule('0 10,15,20 * * *', () => {
         
-      sendPushNotification();
+      getDeviceIdList();
     }, {
       timezone: 'America/New_York' // Replace 'Your_Time_Zone' with your desired timezone (e.g., 'America/New_York')
     });
     
-    sendPushNotification()
+    getDeviceIdList()
 
     console.log('Scheduled tasks are set.');
 
@@ -42,26 +40,24 @@ httpServer.listen(port, async () => {
   console.log(`App is Running on PORT ${port}`);
 });
 
+const fbAdmin = require('firebase-admin');
+
+const serviceAccount = require('./yews-news-firebase-adminsdk.json');
+
+fbAdmin.initializeApp({
+    credential: fbAdmin.credential.cert(serviceAccount)
+    // Add any other Firebase configuration options if needed
+});
+
+
 async function getDeviceIdList() {
-    const fbAdmin = require('firebase-admin');
+   
+  const db = fbAdmin.firestore();
+  
+  const collectionRef = db.collection('users');
 
-    // Replace with your Firebase service account credentials JSON file path
-    const serviceAccount = require('./yews-news-firebase-adminsdk.json');
-
-    // Initialize Firebase Admin SDK
-    fbAdmin.initializeApp({
-        credential: fbAdmin.credential.cert(serviceAccount)
-        // Add any other Firebase configuration options if needed
-    });
-
-        // Get a Firestore reference
-    const db = fbAdmin.firestore();
-
-    // Fetch data from a Firestore collection
-    const collectionRef = db.collection('users');
-
-    // Retrieve documents from the collection
-    collectionRef.get()
+  
+  collectionRef.get()
     .then((snapshot) => {
         if (snapshot.empty) {
         console.log('No documents found.');
@@ -70,8 +66,11 @@ async function getDeviceIdList() {
 
         // Process each document
         snapshot.forEach((doc) => {
-        console.log('Document ID:', doc.id);
-        console.log('Document data:', doc.data());
+          console.log('Document ID:', doc.id);
+          console.log('Document data:', doc.data().deviceId);
+
+          sendPushNotification(doc.data().deviceId)
+          
         });
     })
     .catch((error) => {
@@ -79,7 +78,7 @@ async function getDeviceIdList() {
     });
 }
 
-async function sendPushNotification() {
+async function sendPushNotification(deviceId) {
     
   const url = 'https://fcm.googleapis.com/fcm/send';
 
@@ -89,7 +88,7 @@ async function sendPushNotification() {
   };
 
   const requestBody = {
-    to: "/topics/all",//"c5k2G4ge_vJVbX78hpEj26:APA91bHDYA6iPMZ0tQMtSOcBKAX1pKjJs8oQscP7jmaDZwMZ43HCUDNgsrZ6c2Y7ExCMdz0xyx2zwpyPmhki5Ngm-juRiX9TTQco8nLbLIjm4HEFghOaDwwg_wPsM66E5rs1voLLSmUU",
+    to: deviceId,//"/topics/all",
     notification: {
         title: "Notification",
         body: "It’s 3pm, come check out the latest news on Yews News!"
